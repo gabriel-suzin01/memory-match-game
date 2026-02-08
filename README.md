@@ -1,2 +1,8 @@
-# memory-match-game
-A simple HTML/CSS/JS memory match game.
+# 🃏 Memory Match
+
+This project was made in one day as a simple challenge, and for fun!
+
+## 🛠️ Technologies
+
+- Javascript
+- Tailwind
