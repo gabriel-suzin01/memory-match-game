@@ -1,0 +1,32 @@
+@keyframes turn_animation {
+    from {
+        transform: rotateY(0deg);
+    }
+    
+    to {
+        transform: rotateY(180deg);
+    }
+}
+
+.memory-card {
+  perspective: 1000px;
+}
+
+.card-inner {
+  transform-style: preserve-3d;
+}
+
+.reveal-card {
+  animation: turn_animation 0.5s ease forwards;
+}
+
+.card-front,
+.card-back {
+  position: relative;
+  inset: 0;
+  backface-visibility: hidden;
+}
+
+.card-back {
+    transform: rotateY(180deg);
+}
