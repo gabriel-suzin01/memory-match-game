@@ -55,7 +55,7 @@ function generateRandomSequence() {
     let randomIcons = [];
 
     for(let i = 0; i < ICONS_QTD; i++) {
-        let randomNumber = Math.floor(Math.random() * i);
+        let randomNumber = Math.floor(Math.random() * (i * 2));
         randomIcons.push(ITEM_MAP[randomNumber]);
     }
 
@@ -69,46 +69,101 @@ function generateRandomSequence() {
 function reveal(card) {
     void card.style.offsetY;
 
-    card.querySelector('.card-inner')?.classList.add('reveal-card');
-
-    setTimeout(() => {
-        conceal(card);
-    }, 1000);
+    card.classList.add('reveal-card');
 }
 
 function conceal(card) {
     void card.style.offsetY;
 
-    card.querySelector('.card-inner')?.classList.remove('reveal-card');
+    card.classList.add('conceal-card');
+    setTimeout(() => {
+        card.classList.remove('reveal-card');
+        card.classList.remove('conceal-card');
+    }, 500);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function initBoard() {
+    localStorage.clear();
+
     setupMemoryCards();
+
     let sequence = generateRandomSequence();
+    let pairCounter = 0;
+    let cardQtd = sequence.length;
 
-    document.querySelector('#memory-match-board')?.addEventListener('click', (event) => {
-        const PRESSED_BUTTON = event.target;
+    const gameHandler = {
+        sequence: sequence,
+        onClick(event) {
+            if (window.memoryMatchDebouncer) return;
 
-        if (PRESSED_BUTTON.tagName !== 'BUTTON') {
-            return;
+            const PRESSED_BUTTON = event.target;
+
+            if (PRESSED_BUTTON.tagName !== 'BUTTON') return;
+            if (localStorage.getItem('pressed_buttons') && JSON.parse(localStorage.getItem('pressed_buttons'))[0] === PRESSED_BUTTON.id) return;
+            if (PRESSED_BUTTON.parentNode?.classList.contains('reveal-card')) return;
+
+            reveal(PRESSED_BUTTON.parentNode, PRESSED_BUTTON);
+
+            let pressedButtons = [];
+            pressedButtons.push(PRESSED_BUTTON.id);
+
+            if (localStorage.getItem('pressed_buttons')) {
+                pressedButtons.push(...JSON.parse(localStorage.getItem('pressed_buttons')).filter(value => value !== ','));
+            }
+
+            if (pressedButtons.length > 1) {
+                const encontrouPar = sequence[parseInt(pressedButtons[0], 10)] === sequence[parseInt(pressedButtons[1], 10)];
+
+                if (encontrouPar === false) {
+                    const cardsToHide = [...pressedButtons];
+
+                    setTimeout(() => {
+                        cardsToHide.forEach(id => {
+                            const card = document.getElementById(`${id}`).parentNode;
+
+                            if (!card) return;
+
+                            conceal(card);
+                        });
+                    }, 1000);
+                }
+                else {
+                    const cardsToReveal = [...pressedButtons];
+
+                    cardsToReveal.forEach(id => {
+                        const card = document.getElementById(`${id}`).parentNode;
+
+                        if (!card) return;
+
+                        reveal(card);
+                    });
+
+                    pairCounter++;
+                }
+
+                localStorage.removeItem('pressed_buttons');
+                pressedButtons = [];
+            }
+
+            if (pairCounter >= Math.floor(cardQtd / 2)) {
+                alert('Você ganhou! Parabéns!');
+
+                const memoryMatch = document.querySelector('#memory-match-board');
+
+                memoryMatch?.removeEventListener('click', gameHandler.onClick);
+                document.querySelectorAll('.memory-card').forEach(div => div.innerHTML = '');                
+                initBoard();
+            }
+
+            localStorage.setItem('pressed_buttons', JSON.stringify(pressedButtons));
         }
+    }
 
-        let pressedButtons = localStorage.getItem('pressed_buttons') ?? [];
-
-        if (pressedButtons.length > 1) {
-            pressedButtons = [];
-        }
-
-        pressedButtons.push(PRESSED_BUTTON);
-
-        localStorage.setItem('pressed_buttons', pressedButtons);
-
-        console.log(pressedButtons);
-    });
+    document.querySelector('#memory-match-board')?.addEventListener('click', gameHandler.onClick);
 
     document.querySelectorAll(".memory-card").forEach((div, index) => {
         let buttonElement = document.createElement('button');
-        buttonElement.onclick = () => reveal(div);
+        buttonElement.id = index;
         buttonElement.className = 'w-full h-full absolute inset-[0]';
 
         let iElement = document.createElement('i');
@@ -117,4 +172,8 @@ document.addEventListener('DOMContentLoaded', () => {
         div.querySelector('.card-inner')?.appendChild(buttonElement);
         div.querySelector('.card-back')?.appendChild(iElement);
     });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initBoard();
 });
